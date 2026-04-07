@@ -1,0 +1,15 @@
+name: email-triage-env
+description: AI Email Triage Environment for OpenEnv Hackathon
+version: 1.0
+
+entrypoint: inference.py
+
+tasks:
+  - name: easy
+    description: Classify spam email
+  - name: medium
+    description: Respond to customer complaint
+  - name: hard
+    description: Handle urgent escalation
+
+author: Pranav118
