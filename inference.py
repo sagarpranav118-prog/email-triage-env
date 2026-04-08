@@ -14,22 +14,23 @@ client = OpenAI(
 # ✅ AI action function
 def get_action_from_ai(observation):
     try:
-        prompt = f"""
-You are an email assistant.
+            prompt = f"""
+    You are an email assistant.
 
-Email:
-Subject: {observation.subject}
-Body: {observation.body}
+    Email:
+    Subject: {observation.subject}
+    Body: {observation.body}
 
-Return ONLY in this format:
-action_type: classify/reply/escalate
-content: your answer
-"""
+    Return ONLY in this format:
+    action_type: classify/reply/escalate
+    content: your answer
+    """
 
         response = client.chat.completions.create(
             model=os.environ.get("MODEL_NAME", "gpt-4o-mini"),
             messages=[{"role": "user", "content": prompt}],
-            temperature=0
+            temperature=0,
+            timeout=10  # ✅ ADD THIS
         )
 
         text = response.choices[0].message.content.strip().lower()
@@ -73,7 +74,10 @@ def run_env():
         step_count = 0
         task_score = 0.0
 
-        while not done:
+        # ✅ LIMIT STEPS (VERY IMPORTANT)
+        MAX_STEPS = 2
+
+        while not done and step_count < MAX_STEPS:
             step_count += 1
 
             action = get_action_from_ai(obs)
