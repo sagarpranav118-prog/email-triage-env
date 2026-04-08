@@ -31,22 +31,37 @@ def get_action_from_ai(observation):
 
 def run_env():
     env = EmailEnv()
-    total_reward = 0.0
+    total_score = 0.0
 
-    for _ in range(3):
+    for i in range(3):
+        task_name = f"task_{i+1}"
+
+        print(f"[START] task={task_name}", flush=True)
+
         obs = env.reset()
         done = False
+        step_count = 0
+        task_score = 0.0
 
         while not done:
+            step_count += 1
+
             action = get_action_from_ai(obs)
             obs, reward, done, _ = env.step(action)
 
-            # ✅ CORRECT FIELD
-            total_reward += reward.score
+            # ✅ correct reward field
+            step_reward = reward.score
+            task_score += step_reward
 
-    return total_reward
+            print(f"[STEP] step={step_count} reward={step_reward}", flush=True)
+
+        print(f"[END] task={task_name} score={task_score} steps={step_count}", flush=True)
+
+        total_score += task_score
+
+    return total_score
 
 
 if __name__ == "__main__":
     score = run_env()
-    print("Baseline Score:", score)
+    print(f"Final Score: {score}", flush=True)
