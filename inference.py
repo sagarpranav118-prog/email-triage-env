@@ -1,69 +1,48 @@
-import os
-from openai import OpenAI
 from env.environment import EmailEnv
 from models.schemas import Action
 
-client = OpenAI(
-    api_key="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",
-    base_url="https://openrouter.ai/api/v1"
-)
-
-MODEL = "meta-llama/llama-3-8b-instruct"
-
 
 def get_action_from_ai(observation):
-    prompt = f"""
-    You are an email assistant.
+    text = (observation.subject + " " + observation.body).lower()
 
-    Email:
-    Subject: {observation.subject}
-    Body: {observation.body}
-
-    Decide one action:
-    - classify: spam/normal/urgent
-    - reply: <text>
-    - escalate
-
-    Output format:
-    action_type: <type>
-    content: <content>
-    """
-
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    output = response.choices[0].message.content
-
-    # simple parsing
-    output = output.lower()
-
-    if "spam" in output:
+    # EASY → classify spam
+    if "win" in text or "offer" in text or "lottery" in text:
         return Action(action_type="classify", content="spam")
-    elif "normal" in output:
-        return Action(action_type="classify", content="normal")
-    elif "urgent" in output:
-        return Action(action_type="classify", content="urgent")
-    elif "escalate" in output:
-        return Action(action_type="escalate")
+
+    # MEDIUM → reply
+    elif "damaged" in text or "broken" in text:
+        return Action(
+            action_type="reply",
+            content="Sorry for the issue. We will replace or refund and assist you."
+        )
+
+    # HARD → urgent handling
     else:
-        return Action(action_type="reply", content=output)
+        # Step 1 classify urgent
+        if "urgent" in text or "asap" in text:
+            return Action(action_type="classify", content="urgent")
+
+        # Step 2 reply
+        return Action(
+            action_type="reply",
+            content="Sorry, we will resolve this immediately."
+        )
 
 
 def run_env():
     env = EmailEnv()
-    obs = env.reset()
+    total_reward = 0.0
 
-    total_reward = 0
+    for _ in range(3):
+        obs = env.reset()
+        done = False
 
-    for _ in range(5):
-        action = get_action_from_ai(obs)
-        obs, reward, done, _ = env.step(action)
-        total_reward += reward.score
+        while not done:
+            action = get_action_from_ai(obs)
+            obs, reward, done, _ = env.step(action)
 
-        if done:
-            break
+            # ✅ CORRECT FIELD
+            total_reward += reward.score
 
     return total_reward
 

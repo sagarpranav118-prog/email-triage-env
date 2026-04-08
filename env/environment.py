@@ -67,7 +67,7 @@ class EmailEnv:
                 feedback = f"Reply scored {score}"
                 self.done = True
 
-        # HARD
+                # HARD
         elif self.task_type == "hard":
             if action.action_type == "classify":
                 if action.content == "urgent":
@@ -85,6 +85,10 @@ class EmailEnv:
 
             elif action.action_type == "escalate":
                 reward += 0.3
+                self.done = True
+
+            # ✅ AUTO END after enough actions
+            if len(self.history) >= 2:
                 self.done = True
 
         # Save history
