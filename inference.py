@@ -1,27 +1,28 @@
-    import os
-    from openai import OpenAI
-    from env.environment import EmailEnv
-    from models.schemas import Action
+import os
+from openai import OpenAI
+from env.environment import EmailEnv
+from models.schemas import Action
 
-    # Create client
-    client = OpenAI(
+print("FILE STARTED", flush=True)
+
+client = OpenAI(
     api_key=os.environ.get("API_KEY"),
     base_url=os.environ.get("API_BASE_URL")
-    )
+)
 
-    def get_action_from_ai(observation):
+def get_action_from_ai(observation):
     try:
         prompt = f"""
-    You are an email assistant.
+You are an email assistant.
 
-    Email:
-    Subject: {observation.subject}
-    Body: {observation.body}
+Email:
+Subject: {observation.subject}
+Body: {observation.body}
 
-    Return ONLY:
-    action_type: classify/reply/escalate
-    content: your answer
-    """
+Return ONLY:
+action_type: classify/reply/escalate
+content: your answer
+"""
 
         response = client.chat.completions.create(
             model=os.environ.get("MODEL_NAME", "gpt-4o-mini"),
@@ -47,7 +48,7 @@
     return Action(action_type="classify", content="normal")
 
 
-    def run_env():
+def run_env():
     env = EmailEnv()
     total_score = 0.0
 
@@ -80,6 +81,6 @@
     return total_score
 
 
-    if __name__ == "__main__":
+if __name__ == "__main__":
     final_score = run_env()
     print(f"Final Score: {final_score}", flush=True)
