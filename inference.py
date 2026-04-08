@@ -1,27 +1,24 @@
-import os
-from openai import OpenAI
-from env.environment import EmailEnv
-from models.schemas import Action
+    import os
+    from openai import OpenAI
+    from env.environment import EmailEnv
+    from models.schemas import Action
 
+    # Create client
+    client = OpenAI(
+    api_key=os.environ.get("API_KEY"),
+    base_url=os.environ.get("API_BASE_URL")
+    )
 
-# ✅ Create client using hackathon env variables
-client = OpenAI(
-    api_key=os.environ.get("HF_TOKEN"),
-    base_url=os.environ.get("https://router.huggingface.co/v1")
-)
-
-
-# ✅ AI action function
-def get_action_from_ai(observation):
+    def get_action_from_ai(observation):
     try:
-            prompt = f"""
+        prompt = f"""
     You are an email assistant.
 
     Email:
     Subject: {observation.subject}
     Body: {observation.body}
 
-    Return ONLY in this format:
+    Return ONLY:
     action_type: classify/reply/escalate
     content: your answer
     """
@@ -30,38 +27,27 @@ def get_action_from_ai(observation):
             model=os.environ.get("MODEL_NAME", "gpt-4o-mini"),
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
-            timeout=10  # ✅ ADD THIS
+            timeout=10
         )
 
         text = response.choices[0].message.content.strip().lower()
 
-        # Simple parsing
-        if "classify" in text:
-            if "spam" in text:
-                return Action(action_type="classify", content="spam")
-            elif "urgent" in text:
-                return Action(action_type="classify", content="urgent")
-            else:
-                return Action(action_type="classify", content="normal")
-
+        if "spam" in text:
+            return Action(action_type="classify", content="spam")
+        elif "urgent" in text:
+            return Action(action_type="classify", content="urgent")
         elif "reply" in text:
-            return Action(
-                action_type="reply",
-                content="We are sorry and will resolve your issue quickly."
-            )
-
+            return Action(action_type="reply", content="We are sorry, we will help you.")
         elif "escalate" in text:
             return Action(action_type="escalate", content="escalating issue")
 
     except Exception as e:
         print(f"[ERROR] {e}", flush=True)
 
-    # fallback (VERY IMPORTANT)
     return Action(action_type="classify", content="normal")
 
 
-# ✅ Main run function with structured logs
-def run_env():
+    def run_env():
     env = EmailEnv()
     total_score = 0.0
 
@@ -74,7 +60,6 @@ def run_env():
         step_count = 0
         task_score = 0.0
 
-        # ✅ LIMIT STEPS (VERY IMPORTANT)
         MAX_STEPS = 2
 
         while not done and step_count < MAX_STEPS:
@@ -95,6 +80,6 @@ def run_env():
     return total_score
 
 
-if __name__ == "__main__":
+    if __name__ == "__main__":
     final_score = run_env()
     print(f"Final Score: {final_score}", flush=True)
