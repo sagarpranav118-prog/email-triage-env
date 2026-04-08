@@ -1,32 +1,54 @@
+import os
+from openai import OpenAI
 from env.environment import EmailEnv
 from models.schemas import Action
 
+client = OpenAI(
+    api_key=os.environ.get("HF_TOKEN"),
+    base_url=os.environ.get("https://router.huggingface.co/v1")
+)
 
 def get_action_from_ai(observation):
-    text = (observation.subject + " " + observation.body).lower()
+        prompt = f"""
+    You are an email assistant.
 
-    # EASY → classify spam
-    if "win" in text or "offer" in text or "lottery" in text:
-        return Action(action_type="classify", content="spam")
+    Classify or respond to this email.
 
-    # MEDIUM → reply
-    elif "damaged" in text or "broken" in text:
-        return Action(
-            action_type="reply",
-            content="Sorry for the issue. We will replace or refund and assist you."
-        )
+    Email:
+    Subject: {observation.subject}
+    Body: {observation.body}
 
-    # HARD → urgent handling
-    else:
-        # Step 1 classify urgent
-        if "urgent" in text or "asap" in text:
+    Return ONLY in this format:
+    action_type: classify/reply/escalate
+    content: your answer
+    """
+
+    response = client.chat.completions.create(
+        model=os.environ.get("MODEL_NAME", "gpt-4o-mini"),
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0
+    )
+
+    text = response.choices[0].message.content.strip().lower()
+
+    # Simple parsing
+    if "classify" in text:
+        if "spam" in text:
+            return Action(action_type="classify", content="spam")
+        elif "urgent" in text:
             return Action(action_type="classify", content="urgent")
+        else:
+            return Action(action_type="classify", content="normal")
 
-        # Step 2 reply
-        return Action(
-            action_type="reply",
-            content="Sorry, we will resolve this immediately."
-        )
+    elif "reply" in text:
+        return Action(action_type="reply", content="We are sorry and will resolve your issue quickly.")
+
+    elif "escalate" in text:
+        return Action(action_type="escalate", content="escalating issue")
+
+    return Action(action_type="classify", content="normal")
 
 
 def run_env():
