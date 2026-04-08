@@ -6,4 +6,4 @@ COPY . .
 
 RUN pip install --no-cache-dir openai pydantic
 
-CMD ["sh", "-c", "python inference.py && tail -f /dev/null"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
