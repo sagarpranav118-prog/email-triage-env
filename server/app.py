@@ -37,3 +37,7 @@ def main():
 # ✅ REQUIRED ENTRY POINT
 if __name__ == "__main__":
     main()
+
+@app.get("/")
+def home():
+    return {"message": "Email Triage OpenEnv API is running"}
