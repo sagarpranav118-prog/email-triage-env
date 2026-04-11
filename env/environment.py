@@ -43,11 +43,11 @@ class EmailEnv:
         if self.task_type == "easy":
             if action.action_type == "classify":
                 if action.content == self.current_email["label"]:
-                    reward = 0.9   # ✅ was 1.0
+                    reward = 0.95   # ✅ was 1.0
                     feedback = "Correct classification"
                     self.done = True
                 else:
-                    reward = 0.1   # ✅ was 0.0
+                    reward = 0.05   # ✅ was 0.0
                     feedback = "Wrong classification"
                     self.done = True
 
@@ -73,25 +73,31 @@ class EmailEnv:
 
         # ================= HARD =================
         elif self.task_type == "hard":
+
+            # ---- CLASSIFY ----
             if action.action_type == "classify":
                 if action.content == "urgent":
-                    reward += 0.25   # ✅ reduced
+                    reward += 0.3   # improved
                 else:
-                    reward -= 0.05   # ✅ reduced penalty
+                    reward -= 0.05
 
+            # ---- REPLY ----
             elif action.action_type == "reply":
                 text = action.content.lower()
 
                 if "sorry" in text:
-                    reward += 0.15   # ✅ reduced
+                    reward += 0.2
                 if "resolve" in text or "immediately" in text:
-                    reward += 0.15   # ✅ reduced
+                    reward += 0.2
+                if "help" in text or "assist" in text:
+                    reward += 0.1   # extra intelligence reward
 
+            # ---- ESCALATE (MOST IMPORTANT) ----
             elif action.action_type == "escalate":
-                reward += 0.25   # ✅ reduced
+                reward += 0.4   # 🔥 HIGH reward for smart escalation
                 self.done = True
 
-            # ✅ auto end after some actions
+            # ---- AUTO END ----
             if len(self.history) >= 2:
                 self.done = True
 
@@ -99,6 +105,8 @@ class EmailEnv:
         self.history.append(f"{action.action_type}: {action.content}")
 
         # ✅ FINAL SAFETY (VERY IMPORTANT)
-        reward = max(0.01, min(reward, 0.99))
-
+        reward = max(0.1, min(0.95, reward))
+        import random
+        reward = reward + random.uniform(-0.05, 0.05)
+        reward = max(0.01, min(0.99, reward))
         return self.state(), Reward(score=reward, feedback=feedback), self.done, {}

@@ -3,49 +3,69 @@ from openai import OpenAI
 from env.environment import EmailEnv
 from models.schemas import Action
 
-print("FILE STARTED", flush=True)
-
+# Initialize client (uses hackathon environment variables)
 client = OpenAI(
     api_key=os.environ.get("API_KEY"),
     base_url=os.environ.get("API_BASE_URL")
 )
 
+
 def get_action_from_ai(observation):
     try:
         prompt = f"""
-You are an email assistant.
+You are an intelligent email assistant.
+
+Analyze the email and decide:
+1. Is it spam, normal, or urgent?
+2. What action should be taken?
+
+Return STRICTLY:
+action_type: classify/reply/escalate
+content: value
 
 Email:
 Subject: {observation.subject}
 Body: {observation.body}
-
-Return ONLY:
-action_type: classify/reply/escalate
-content: your answer
 """
 
         response = client.chat.completions.create(
             model=os.environ.get("MODEL_NAME", "gpt-4o-mini"),
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
-            timeout=10
+            timeout=6
         )
 
         text = response.choices[0].message.content.strip().lower()
 
-        if "spam" in text:
-            return Action(action_type="classify", content="spam")
-        elif "urgent" in text:
-            return Action(action_type="classify", content="urgent")
+        if "classify" in text:
+            if "spam" in text:
+                return Action(action_type="classify", content="spam")
+            elif "urgent" in text:
+                return Action(action_type="classify", content="urgent")
+            else:
+                return Action(action_type="classify", content="normal")
+
         elif "reply" in text:
-            return Action(action_type="reply", content="We are sorry, we will help you.")
+            return Action(
+                action_type="reply",
+                content="We are sorry. We will resolve your issue quickly."
+            )
+
         elif "escalate" in text:
-            return Action(action_type="escalate", content="escalating issue")
+            return Action(action_type="escalate", content="Escalating issue")
 
     except Exception as e:
         print(f"[ERROR] {e}", flush=True)
 
-    return Action(action_type="classify", content="normal")
+    # 🔥 SMART FALLBACK (from second code)
+    text = (observation.subject + " " + observation.body).lower()
+
+    if any(word in text for word in ["win", "offer", "lottery", "prize", "free"]):
+        return Action(action_type="classify", content="spam")
+    elif "urgent" in text or "angry" in text:
+        return Action(action_type="escalate", content="Escalating issue")
+    else:
+        return Action(action_type="reply", content="We will assist you.")
 
 
 def run_env():
@@ -61,7 +81,7 @@ def run_env():
         step_count = 0
         task_score = 0.0
 
-        MAX_STEPS = 2
+        MAX_STEPS = 2   # prevent timeout
 
         while not done and step_count < MAX_STEPS:
             step_count += 1
